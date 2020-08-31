@@ -3,24 +3,8 @@
 import pandas as pd
 import requests
 import time
-import json
-"""
-def loadDataFile(fileName):
-    try:
-       data = pd.read_excel(fileName)
-    except OSError:
-        print(f'Error loading file. Check that file "{fileName}" exists and is in the program folder.')
-        errorLoad = input('"Y" for one more try or enter other file name. "Exit" for cancel: ')
 
-        if errorLoad.lower() == 'y':
-            data = loadDataFile(fileName)
-        elif errorLoad.lower() == 'exit':
-            raise OSError("Не удалось загрузить файл. ")
-        else:
-            data = loadDataFile(errorLoad)
 
-    return data
-"""
 def loadDataFile(fileName):
     fileInput = fileName
     fileFormat = fileName[fileName.rfind('.')+1:]
@@ -51,9 +35,6 @@ def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/'):
     if apikey and address:
 
         try:
-            # addrString = str(country)+', '+str(city)+', '+str(address) if country and city and address else str(city)+', '+str(address) if city and address else address
-            #addrString = '%s%s%s' % (str(country) + ', ' if country else '', str(city) + ', ' if city else '', str(address) if address else '')
-
             response = requests.get(url, params={'apikey': apikey,
                                                  'format': 'json',
                                                  'results': '1',
@@ -83,7 +64,6 @@ def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/'):
             except Exception as read_error:
                 print('Ошибка чтения данных json. '+str(type(read_error).__name__)+': '+str(read_error))
                 return 'Ошибка чтения данных json. '+str(type(read_error).__name__)+': '+str(read_error)
-                #exit('Ошибка чтения данных json. '+str(type(read_error).__name__)+': '+str(read_error))
 
 
     elif not apikey:
@@ -144,9 +124,6 @@ def geoAddress():
     else:
         exit('Проверьте наличие столбца "geometry_name" в файле')
 
-    #jsonData = getCords(country='CIF', city='Санкт-Петербург', address='Дунайский проспект 14/1', apikey='829ef111-8b8c-4dd2-802b-f6dfd6b03327')
-
-    #print(jsonData)
-
 
 geoAddress()
+

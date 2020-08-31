@@ -3,7 +3,7 @@ Gets cordination by address and create xls file for Yandex map constucture servi
 
 Attributes: xls file with name and address
 
-Author: Pavel Alimenkov
+Author: @57BBBears
 
 Last modifed 2020-05
 """
@@ -12,24 +12,8 @@ import requests
 import time
 import folium as fo
 import html
-import json
-"""
-def loadDataFile(fileName):
-    try:
-       data = pd.read_excel(fileName)
-    except OSError:
-        print(f'Error loading file. Check that file "{fileName}" exists and is in the program folder.')
-        errorLoad = input('"Y" for one more try or enter other file name. "Exit" for cancel: ')
 
-        if errorLoad.lower() == 'y':
-            data = loadDataFile(fileName)
-        elif errorLoad.lower() == 'exit':
-            raise OSError("Не удалось загрузить файл. ")
-        else:
-            data = loadDataFile(errorLoad)
 
-    return data
-"""
 def loadDataFile(fileName):
     fileInput = fileName
     fileFormat = fileName[fileName.rfind('.')+1:]
@@ -54,51 +38,7 @@ def loadDataFile(fileName):
                 fileName = fileInput
 
     return data
-"""
-def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', timeout=2):
 
-    if apikey and address:
-        try:
-            # addrString = str(country)+', '+str(city)+', '+str(address) if country and city and address else str(city)+', '+str(address) if city and address else address
-            #addrString = '%s%s%s' % (str(country) + ', ' if country else '', str(city) + ', ' if city else '', str(address) if address else '')
-
-            response = requests.get(url, params={'apikey': apikey,
-                                                 'format': 'json',
-                                                 'results': '1',
-                                                 'll': '30.312733,59.940073',
-                                                 'geocode': address},
-                                    timeout=(timeout, timeout))
-            response.raise_for_status()
-
-        except requests.exceptions.Timeout as request_error:
-            print(f'Ошибка соеднинения. {request_error}')
-            time.sleep(timeout*2)
-            return getCords(address=address, apikey=apikey, url=url)
-        except requests.RequestException as request_error:
-            print(f'Ошибка соеднинения. {request_error}')
-            time.sleep(timeout*2)
-            return getCords(address=address, apikey=apikey, url=url)
-
-        json = response.json()
-            
-        if 'error' in json:
-            return json['error']+': ' + json['message']
-        else:
-            try:
-                cords = json['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
-                return cords
-
-            except Exception as read_error:
-                print('Ошибка чтения данных json. '+str(type(read_error).__name__)+': '+str(read_error))
-                return 'Ошибка чтения данных json. '+str(type(read_error).__name__)+': '+str(read_error)
-                #exit('Ошибка чтения данных json. '+str(type(read_error).__name__)+': '+str(read_error))
-
-
-    elif not apikey:
-        exit('Ошибка. Не указан API ключ ')
-    else:
-        exit('Ошибка. Не указан адрес для поиска')
-"""
 
 def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', timeout=2):
     """
@@ -117,8 +57,6 @@ def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', t
         while pause <= 64:
 
             try:
-                # addrString = str(country)+', '+str(city)+', '+str(address) if country and city and address else str(city)+', '+str(address) if city and address else address
-                # addrString = '%s%s%s' % (str(country) + ', ' if country else '', str(city) + ', ' if city else '', str(address) if address else '')
                 response = requests.get(url, params={'apikey': apikey,
                                                      'format': 'json',
                                                      'results': '1',
@@ -166,8 +104,6 @@ def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', t
             except Exception as read_error:
                 print('Ошибка чтения данных json. ' + str(type(read_error).__name__) + ': ' + str(read_error))
                 return 'Ошибка чтения данных json. ' + str(type(read_error).__name__) + ': ' + str(read_error)
-                # exit('Ошибка чтения данных json. '+str(type(read_error).__name__)+': '+str(read_error))
-
 
     elif not apikey:
         exit('Ошибка. Не указан API ключ ')
@@ -254,10 +190,6 @@ def geoAddress():
 
     else:
         exit('Проверьте наличие столбца "geometry_name" в файле')
-
-    #jsonData = getCords(country='CIF', city='Санкт-Петербург', address='Дунайский проспект 14/1', apikey='829ef111-8b8c-4dd2-802b-f6dfd6b03327')
-
-    #print(jsonData)
 
 
 if __name__ == '__main__':
