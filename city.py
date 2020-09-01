@@ -125,5 +125,6 @@ def geoAddress():
         exit('Проверьте наличие столбца "geometry_name" в файле')
 
 
-geoAddress()
+if __name__ == '__main__':
+    geoAddress()
 
