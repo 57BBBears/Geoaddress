@@ -1,11 +1,11 @@
 """
 Gets cordination by address and create xls file for Yandex map constucture service
 
-Attributes: xls file with name and address
+Attributes: xls file with 'name' and 'geometry_name' i.g. address columns
 
 Author: @57BBBears
 
-Last modifed 2020-05
+Last modifed 2020-09
 """
 import pandas as pd
 import requests
@@ -111,6 +111,7 @@ def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', t
         exit('Ошибка. Не указан адрес для поиска')
 
 def draw_map(data):
+    #TODO check coordinates is digit or error on drawing
     print('Рисуем карту...')
 
     map = fo.Map()
@@ -123,7 +124,7 @@ def draw_map(data):
     data_name = list(data['Подпись'])
 
     for lat, long, name, descr in zip(data_lat, data_long, data_name, data_descr):
-        markers.add_child(fo.Marker(location=[lat, long], popup=html.escape(name.replace('`', "'").replace('\\', '/'))+'<br/>'+html.escape(descr.replace('`', "'").replace('\\', '/')), icon=fo.Icon(color='blue')))
+        markers.add_child(fo.Marker(location=[lat, long], popup=html.escape(str(name).replace('`', "'").replace('\\', '/'))+'<br/>'+html.escape(str(descr).replace('`', "'").replace('\\', '/')), icon=fo.Icon(color='blue')))
 
     map.add_child(markers)
     map.save('map.html')
@@ -145,7 +146,8 @@ def geoAddress():
     print('\nПолучение данных. Может занять некоторое время..')
 
     if 'geometry_name' in addrFile.columns:
-        data = addrFile[['name', 'geometry_name']]
+        data = addrFile.loc[:, ('name', 'geometry_name')]
+        data['name'] = pd.core.series.Series(map(lambda x, y: str(x)+'\n'+str(y), data['name'], data['geometry_name']))
 
         # Get cordinations instead of address and devide into 2 columns
         if 'city' in addrFile.columns:
@@ -162,8 +164,8 @@ def geoAddress():
         #data['cords'] = cords
         altLat = cords.str.split(' ', expand=True)
         data = pd.concat([altLat, data], axis=1)
-        data = data[[1, 0, 'geometry_name', 'name']]
-        data['Номер метки'] = range(1, len(data.index)+1)
+        data = data[[1, 0, 'name', 'geometry_name']]
+        data['Номер метки'] = data['geometry_name'] = range(1, len(data.index)+1)
         data.columns = ['Широта', 'Долгота', 'Описание', 'Подпись', 'Номер метки']
         print(data)
 
