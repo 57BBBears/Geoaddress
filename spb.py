@@ -1,4 +1,6 @@
 """
+GeoAddress v. 1.2
+
 Gets cordination by address and create xls file for Yandex map constucture service
 
 Attributes: xls file with 'name' and 'geometry_name' i.g. address columns
@@ -111,7 +113,6 @@ def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', t
         exit('Ошибка. Не указан адрес для поиска')
 
 def draw_map(data):
-    #TODO check coordinates is digit or error on drawing
     print('Рисуем карту...')
 
     map = fo.Map()
@@ -124,6 +125,12 @@ def draw_map(data):
     data_name = list(data['Подпись'])
 
     for lat, long, name, descr in zip(data_lat, data_long, data_name, data_descr):
+        try:
+            lat = float(lat)
+            long = float(long)
+        except ValueError:
+            continue
+            
         markers.add_child(fo.Marker(location=[lat, long], popup=html.escape(str(name).replace('`', "'").replace('\\', '/'))+'<br/>'+html.escape(str(descr).replace('`', "'").replace('\\', '/')), icon=fo.Icon(color='blue')))
 
     map.add_child(markers)
@@ -132,7 +139,7 @@ def draw_map(data):
     print('Готово. Карта в map.html')
 
 def geoAddress():
-    print('Geo Address 1.1')
+    print('Geo Address 1.2')
 
     try:
         addrFile = loadDataFile('address.xls')
