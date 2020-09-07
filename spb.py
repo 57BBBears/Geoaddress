@@ -43,6 +43,7 @@ def loadDataFile(fileName):
 
 
 def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', timeout=2):
+    #TODO write strings with error, add error message to file
     """
     Get cordinates by address
 
@@ -130,7 +131,7 @@ def draw_map(data):
             long = float(long)
         except ValueError:
             continue
-            
+
         markers.add_child(fo.Marker(location=[lat, long], popup=html.escape(str(name).replace('`', "'").replace('\\', '/'))+'<br/>'+html.escape(str(descr).replace('`', "'").replace('\\', '/')), icon=fo.Icon(color='blue')))
 
     map.add_child(markers)
@@ -138,7 +139,7 @@ def draw_map(data):
 
     print('Готово. Карта в map.html')
 
-def geoAddress():
+def geoAddress(**kwargs):
     print('Geo Address 1.2')
 
     try:
@@ -159,8 +160,10 @@ def geoAddress():
         # Get cordinations instead of address and devide into 2 columns
         if 'city' in addrFile.columns:
             addrCol = addrFile[['city', 'geometry_name']].apply(lambda x: ', '.join(x.astype(str)), axis=1)
+        elif 'city' in kwargs:
+            addrCol = addrFile['geometry_name'].apply(lambda x: kwargs['city']+', ' + str(x))
         else:
-            addrCol = addrFile['geometry_name'].apply(lambda x: 'Санкт-Петербург, '+str(x))
+            addrCol = addrFile['geometry_name']
 
         cords = addrCol.apply(getCords, apikey='829ef111-8b8c-4dd2-802b-f6dfd6b03327')
         #cords = addrFile['geometry_name'].apply(lambda x: [1, 2])
@@ -202,4 +205,4 @@ def geoAddress():
 
 
 if __name__ == '__main__':
-    geoAddress()
+    geoAddress(city='Санкт-Петербург')
