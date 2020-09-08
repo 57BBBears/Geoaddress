@@ -54,7 +54,7 @@ def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', t
     :return: cords for address
     """
     if apikey and address:
-        #try to get data while pause less 36 sec or 7 times
+        # try to get data while pause less 36 sec or 7 times
         pause = timeout
         t = 0
         while pause <= 64:
@@ -139,6 +139,7 @@ def draw_map(data):
 
     print('Готово. Карта в map.html')
 
+
 def geoAddress(**kwargs):
     print('Geo Address 1.2')
 
@@ -154,16 +155,18 @@ def geoAddress(**kwargs):
     print('\nПолучение данных. Может занять некоторое время..')
 
     if 'geometry_name' in addrFile.columns:
-        data = addrFile.loc[:, ('name', 'geometry_name')]
-        data['name'] = pd.core.series.Series(map(lambda x, y: str(x)+'\n'+str(y), data['name'], data['geometry_name']))
+        data = addrFile.loc[:, ('name', 'geometry_name')].fillna('')
+        data['name'] = pd.Series(map(lambda x, y: str(x)+'\n'+str(y), data['name'], data['geometry_name']))
 
         # Get cordinations instead of address and devide into 2 columns
         if 'city' in addrFile.columns:
-            addrCol = addrFile[['city', 'geometry_name']].apply(lambda x: ', '.join(x.astype(str)), axis=1)
-        elif 'city' in kwargs:
-            addrCol = addrFile['geometry_name'].apply(lambda x: kwargs['city']+', ' + str(x))
+            addrCol = addrFile[['city', 'geometry_name']].fillna('').apply(
+                lambda x: kwargs['city']+', '+', '.join(x.astype(str)) if 'city' in kwargs
+                else ', '.join(x.astype(str)), axis=1)
         else:
-            addrCol = addrFile['geometry_name']
+            addrCol = kwargs['city']+', '+addrFile['geometry_name'] if 'city' in kwargs else addrFile['geometry_name']
+
+        print(addrCol)
 
         cords = addrCol.apply(getCords, apikey='829ef111-8b8c-4dd2-802b-f6dfd6b03327')
         #cords = addrFile['geometry_name'].apply(lambda x: [1, 2])
