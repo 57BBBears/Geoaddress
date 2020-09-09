@@ -45,12 +45,12 @@ def loadDataFile(fileName):
 def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', timeout=2):
     #TODO write strings with error, add error message to file
     """
-    Get cordinates by address
+    Get coordinates by address using Yandex map API
 
-    :param address: City, street, house
-    :param apikey: Yandex map api key
-    :param url: Yandex api service url
-    :param timeout: connection time and default pause between connection problems
+    :param str address: City, street, house
+    :param str apikey: Yandex map api key
+    :param str url: Yandex api service url
+    :param int timeout: connection time and default pause between connection problems
     :return: cords for address
     """
     if apikey and address:
@@ -86,17 +86,8 @@ def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', t
             print(f'Ошибка. Превышено количество попыток подключения. Адрес: {address} ')
             return 'Ошибка. Превышено количество попыток подключения'
 
-        #check if there is a response
-        """
-        try:
-            response
-        except NameError:
-            print(f'Ошибка получения данных от сервера. Адрес: {address} ')
-            return 'Ошибка получения данных от сервера. '
-        else:
-        """
         json = response.json()
-
+        # check if there is a response
         if 'error' in json:
             return json['error'] + ': ' + json['message']
         else:
@@ -105,8 +96,8 @@ def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', t
                 return cords
 
             except Exception as read_error:
-                print('Ошибка чтения данных json. ' + str(type(read_error).__name__) + ': ' + str(read_error))
-                return 'Ошибка чтения данных json. ' + str(type(read_error).__name__) + ': ' + str(read_error)
+                print('Ошибка. В чтении данных json. ' + str(type(read_error).__name__) + ': ' + str(read_error))
+                return 'Ошибка. В чтении данных json. ' + str(type(read_error).__name__) + ': ' + str(read_error)
 
     elif not apikey:
         exit('Ошибка. Не указан API ключ ')
@@ -141,6 +132,15 @@ def draw_map(data):
 
 
 def geoAddress(**kwargs):
+    """
+    Geo Address 1.2
+    :param kwargs: parameters for output file
+    :param str city: additional region/city for address (optional)
+    :param str sign: format for icon sign on the map (optional)
+    :param str name: format for icon description (optional).
+    Formats: name_address - 'name \n address', default value from input file
+    :return: generates address_map.xml file
+    """
     print('Geo Address 1.2')
 
     try:
@@ -155,8 +155,16 @@ def geoAddress(**kwargs):
     print('\nПолучение данных. Может занять некоторое время..')
 
     if 'geometry_name' in addrFile.columns:
-        data = addrFile.loc[:, ('name', 'geometry_name')].fillna('')
-        data['name'] = pd.Series(map(lambda x, y: str(x)+'\n'+str(y), data['name'], data['geometry_name']))
+        data = addrFile.loc[:, ('name', 'geometry_name')].fillna('') if 'name' in addrFile.columns\
+            else addrFile['geometry_name'].fillna('')
+
+        if 'name' not in data.columns:
+            data['name'] = ''
+
+        # get name format for output by params
+        if 'name' in kwargs:
+            if kwargs['name'] == 'name_address':
+                data['name'] = pd.Series(map(lambda x, y: str(x)+'\n'+str(y), data['name'], data['geometry_name']))
 
         # Get cordinations instead of address and devide into 2 columns
         if 'city' in addrFile.columns:
@@ -166,20 +174,22 @@ def geoAddress(**kwargs):
         else:
             addrCol = kwargs['city']+', '+addrFile['geometry_name'] if 'city' in kwargs else addrFile['geometry_name']
 
-        print(addrCol)
-
         cords = addrCol.apply(getCords, apikey='829ef111-8b8c-4dd2-802b-f6dfd6b03327')
-        #cords = addrFile['geometry_name'].apply(lambda x: [1, 2])
-        #cords = cords.apply(lambda x: x['cords'].split(' ', expand=True))
-        #cords.columns = ['Широта', 'Долгота']
-        #cords.columns('Широта', 'Долгота')
-        #cords = pd.DataFrame(cords)
-        #data['cords'] = cords
+
         altLat = cords.str.split(' ', expand=True)
         data = pd.concat([altLat, data], axis=1)
         data = data[[1, 0, 'name', 'geometry_name']]
         data['Номер метки'] = data['geometry_name'] = range(1, len(data.index)+1)
         data.columns = ['Широта', 'Долгота', 'Описание', 'Подпись', 'Номер метки']
+
+        # get errors if exist
+        errors = data[data['Долгота'] == 'Ошибка.']
+        if errors.empty:
+            print('Ура! Ошибок нет.')
+        else:
+            print('Ошибки:')
+            print(errors)
+
         print(data)
 
         if not data.empty:
@@ -208,4 +218,4 @@ def geoAddress(**kwargs):
 
 
 if __name__ == '__main__':
-    geoAddress(city='Санкт-Петербург')
+    geoAddress(city='Санкт-Петербург', name='name_address')
