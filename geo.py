@@ -43,7 +43,6 @@ def loadDataFile(fileName):
 
 
 def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', timeout=2):
-    #TODO write strings with error, add error message to file
     """
     Get coordinates by address using Yandex map API
 
@@ -166,7 +165,7 @@ def geoAddress(**kwargs):
             if kwargs['name'] == 'name_address':
                 data['name'] = pd.Series(map(lambda x, y: str(x)+'\n'+str(y), data['name'], data['geometry_name']))
 
-        # Get cordinations instead of address and devide into 2 columns
+        # Get coordinates instead of address and devide into 2 columns
         if 'city' in addrFile.columns:
             addrCol = addrFile[['city', 'geometry_name']].fillna('').apply(
                 lambda x: kwargs['city']+', '+', '.join(x.astype(str)) if 'city' in kwargs
@@ -176,19 +175,33 @@ def geoAddress(**kwargs):
 
         cords = addrCol.apply(getCords, apikey='829ef111-8b8c-4dd2-802b-f6dfd6b03327')
 
-        altLat = cords.str.split(' ', expand=True)
-        data = pd.concat([altLat, data], axis=1)
-        data = data[[1, 0, 'name', 'geometry_name']]
-        data['Номер метки'] = data['geometry_name'] = range(1, len(data.index)+1)
-        data.columns = ['Широта', 'Долгота', 'Описание', 'Подпись', 'Номер метки']
+        #altLat = cords.str.split(' ', expand=True)
+        #data = pd.concat([altLat, data], axis=1)
+        data = pd.concat([cords, data], axis=1)
+        errors = data[data.iloc[:, 0].str.contains('Ошибка')]
+        data = data[~(data.iloc[:, 0].str.contains('Ошибка'))]
+        altlat = data.iloc[:, 0].str.split(' ', expand=True)
+        data = pd.concat([altlat, data.iloc[:, [1, 2]]], axis=1)
 
         # get errors if exist
-        errors = data[data['Долгота'] == 'Ошибка.']
         if errors.empty:
             print('Ура! Ошибок нет.')
         else:
             print('Ошибки:')
             print(errors)
+
+            error_file = 'error.xls'
+            try:
+                errors.to_excel(error_file)
+            except Exception as write_error:
+                print('Запись ошибок в файл '+error_file+' не удалась. '+str(write_error))
+            else:
+                print('Проверьте файл '+error_file)
+
+        data = data[[1, 0, 'name', 'geometry_name']]
+        #TODO add choice a type of sign
+        data['Номер метки'] = data['geometry_name'] = range(1, len(data.index)+1)
+        data.columns = ['Широта', 'Долгота', 'Описание', 'Подпись', 'Номер метки']
 
         print(data)
 
@@ -218,4 +231,4 @@ def geoAddress(**kwargs):
 
 
 if __name__ == '__main__':
-    geoAddress(city='Санкт-Петербург', name='name_address')
+    geoAddress(city='Санкт-Петербург', name='name_address', sign='number')
