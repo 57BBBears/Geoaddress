@@ -52,6 +52,11 @@ def getCords(address='', apikey='', url='https://geocode-maps.yandex.ru/1.x/', t
     :param int timeout: connection time and default pause between connection problems
     :return: cords for address
     """
+
+    if not address:
+        print('Ошибка. Пустой адрес')
+        return 'Ошибка. Пустой адрес'
+
     if apikey and address:
         # try to get data while pause less 36 sec or 7 times
         pause = timeout
@@ -136,8 +141,9 @@ def geoAddress(**kwargs):
     :param kwargs: parameters for output file
     :param str city: additional region/city for address (optional)
     :param str sign: format for icon sign on the map (optional)
+        Formats: name - name from file, number - numbers 1 - n (default)
     :param str name: format for icon description (optional).
-    Formats: name_address - 'name \n address', default value from input file
+        Formats: name_address - 'name \n address', address - duplicate address, default value from input file
     :return: generates address_map.xml file
     """
     print('Geo Address 1.2')
@@ -148,22 +154,30 @@ def geoAddress(**kwargs):
         print(error)
         exit('Конец программы. ')
 
-    print('Загружены данные: ')
-    print(addrFile)
+    print('Загружены данные: \n', addrFile)
 
     print('\nПолучение данных. Может занять некоторое время..')
 
     if 'geometry_name' in addrFile.columns:
-        data = addrFile.loc[:, ('name', 'geometry_name')].fillna('') if 'name' in addrFile.columns\
-            else addrFile['geometry_name'].fillna('')
+        data = addrFile.loc[:, ('name', 'geometry_name')] if 'name' in addrFile.columns\
+    else pd.DataFrame(addrFile.loc[:, 'geometry_name'])
+
+        errors = data[data['geometry_name'].isnull()].copy().fillna('')
+        errors['error'] = 'Ошибка. Пустой адрес'
+        errors = errors[['error', 'name', 'geometry_name']]
+        data = data[data['geometry_name'].notnull()].copy().fillna('')
 
         if 'name' not in data.columns:
             data['name'] = ''
 
-        # get name format for output by params
+        data_names = data['name']
+
+        # Get name format for output by params
         if 'name' in kwargs:
             if kwargs['name'] == 'name_address':
                 data['name'] = pd.Series(map(lambda x, y: str(x)+'\n'+str(y), data['name'], data['geometry_name']))
+            elif kwargs['name'] == 'address':
+                data['name'] = data['geometry_name']
 
         # Get coordinates instead of address and devide into 2 columns
         if 'city' in addrFile.columns:
@@ -171,17 +185,21 @@ def geoAddress(**kwargs):
                 lambda x: kwargs['city']+', '+', '.join(x.astype(str)) if 'city' in kwargs
                 else ', '.join(x.astype(str)), axis=1)
         else:
-            addrCol = kwargs['city']+', '+addrFile['geometry_name'] if 'city' in kwargs else addrFile['geometry_name']
+            addrCol = kwargs['city']+', '+addrFile['geometry_name'].fillna('') if 'city' in kwargs else addrFile['geometry_name']
 
+        #filter by empty addresses in data
+        addrCol = addrCol.filter(items=data.index, axis=0)
         cords = addrCol.apply(getCords, apikey='829ef111-8b8c-4dd2-802b-f6dfd6b03327')
 
-        #altLat = cords.str.split(' ', expand=True)
-        #data = pd.concat([altLat, data], axis=1)
         data = pd.concat([cords, data], axis=1)
-        errors = data[data.iloc[:, 0].str.contains('Ошибка')]
+        errors_con = data[data.iloc[:, 0].str.contains('Ошибка')]
+        errors_con.columns = ['error', 'name', 'geometry_name']
+        errors = errors.append(errors_con)
+
         data = data[~(data.iloc[:, 0].str.contains('Ошибка'))]
         altlat = data.iloc[:, 0].str.split(' ', expand=True)
         data = pd.concat([altlat, data.iloc[:, [1, 2]]], axis=1)
+
 
         # get errors if exist
         if errors.empty:
@@ -199,10 +217,18 @@ def geoAddress(**kwargs):
                 print('Проверьте файл '+error_file)
 
         data = data[[1, 0, 'name', 'geometry_name']]
-        #TODO add choice a type of sign
-        data['Номер метки'] = data['geometry_name'] = range(1, len(data.index)+1)
+
+        if 'sign' not in kwargs or kwargs['sign'] == 'number':
+            data['geometry_name'] = range(1, len(data.index) + 1)
+        else:
+            if kwargs['sign'] == 'name':
+                data['geometry_name'] = data_names
+
+
+        data['Номер метки'] = range(1, len(data.index)+1)
         data.columns = ['Широта', 'Долгота', 'Описание', 'Подпись', 'Номер метки']
 
+        print('\nИтоговые данные:')
         print(data)
 
         if not data.empty:
