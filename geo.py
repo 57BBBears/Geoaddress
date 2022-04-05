@@ -1,7 +1,7 @@
 """
 GeoAddress v. 1.2
 
-Gets cordination by address and create xls file for Yandex map constucture service
+Gets cordination by address and create xlsx file for Yandex map constucture service
 
 Attributes: xls file with 'name' and 'geometry_name' i.g. address columns
 
@@ -22,12 +22,20 @@ def loadDataFile(fileName):
 
     while fileInput.lower() != 'exit':
         try:
-            if fileFormat == 'xls':
-                data = pd.read_excel(fileName)
-                break
+            if fileFormat == 'xls' or fileFormat == 'xlsx':
+                try:
+                    data = pd.read_excel(fileName)
+                except FileNotFoundError:
+                    # if no xlsx file, try xls
+                    if fileFormat == 'xlsx':
+                        data = pd.read_excel(fileName[:-1])
+                        break
+                else:
+                    break
             elif fileFormat == 'csv':
                 data = pd.read_csv(fileName)
                 break
+
         except OSError:
             print(f'Ошибка чтения файла. Проверьте, что файл "{fileName}" находится в папке с программой. ')
             fileInput = input('Введите другое название файла с раширением или "Y" для повтора. "Exit" для отмены: ')
@@ -135,9 +143,10 @@ def draw_map(data):
     print('Готово. Карта в map.html')
 
 
-def geoAddress(**kwargs):
+def geoAddress(file: str = 'address.xlsx', apikey: str = '', **kwargs):
     """
     Geo Address 1.2
+    :param str file: name of the input file. Dedault: address.xlsx
     :param kwargs: parameters for output file
     :param str city: additional region/city for address (optional)
     :param str sign: format for icon sign on the map (optional)
@@ -148,8 +157,11 @@ def geoAddress(**kwargs):
     """
     print('Geo Address 1.2')
 
+    if not apikey:
+        exit('Укажите API ключ!')
+
     try:
-        addrFile = loadDataFile('address.xls')
+        addrFile = loadDataFile(file)
     except OSError as error:
         print(error)
         exit('Конец программы. ')
@@ -189,11 +201,12 @@ def geoAddress(**kwargs):
 
         #filter by empty addresses in data
         addrCol = addrCol.filter(items=data.index, axis=0)
-        cords = addrCol.apply(getCords, apikey='829ef111-8b8c-4dd2-802b-f6dfd6b03327')
+        cords = addrCol.apply(getCords, apikey=apikey)
 
         data = pd.concat([cords, data], axis=1)
         errors_con = data[data.iloc[:, 0].str.contains('Ошибка')]
         errors_con.columns = ['error', 'name', 'geometry_name']
+        # TODO change append to concut
         errors = errors.append(errors_con)
 
         data = data[~(data.iloc[:, 0].str.contains('Ошибка'))]
@@ -208,7 +221,7 @@ def geoAddress(**kwargs):
             print('Ошибки:')
             print(errors)
 
-            error_file = 'error.xls'
+            error_file = 'error.xlsx'
             try:
                 errors.to_excel(error_file)
             except Exception as write_error:
@@ -233,7 +246,7 @@ def geoAddress(**kwargs):
 
         if not data.empty:
             try:
-                data2File = 'address_map.xls'
+                data2File = 'address_map.xlsx'
                 data.to_excel(data2File, index=False)
 
                 print(f'Готово. Проверьте файл {data2File}')
@@ -257,4 +270,5 @@ def geoAddress(**kwargs):
 
 
 if __name__ == '__main__':
-    geoAddress(city='Санкт-Петербург', name='name_address', sign='number')
+    #geoAddress(city='Санкт-Петербург', name='name_address', sign='number')
+    geoAddress(apikey='829ef111-8b8c-4dd2-802b-f6dfd6b03327', name='name_address', sign='number')
