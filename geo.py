@@ -204,10 +204,11 @@ def geoAddress(file: str = 'address.xlsx', apikey: str = '', **kwargs):
         cords = addrCol.apply(getCords, apikey=apikey)
 
         data = pd.concat([cords, data], axis=1)
+        # Collect errors from data
         errors_con = data[data.iloc[:, 0].str.contains('Ошибка')]
         errors_con.columns = ['error', 'name', 'geometry_name']
-        # TODO change append to concut
-        errors = errors.append(errors_con)
+        errors = pd.concat([errors, errors_con])
+        errors.index += 1
 
         data = data[~(data.iloc[:, 0].str.contains('Ошибка'))]
         altlat = data.iloc[:, 0].str.split(' ', expand=True)
