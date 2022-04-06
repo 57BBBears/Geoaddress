@@ -162,6 +162,7 @@ def geoAddress(file: str = 'address.xlsx', apikey: str = '', **kwargs):
 
     try:
         addrFile = loadDataFile(file)
+        addrFile.rename(str.lower, axis='columns', inplace=True)
     except OSError as error:
         print(error)
         exit('Конец программы. ')
@@ -171,16 +172,17 @@ def geoAddress(file: str = 'address.xlsx', apikey: str = '', **kwargs):
     print('\nПолучение данных. Может занять некоторое время..')
 
     if 'geometry_name' in addrFile.columns:
-        data = addrFile.loc[:, ('name', 'geometry_name')] if 'name' in addrFile.columns\
-    else pd.DataFrame(addrFile.loc[:, 'geometry_name'])
+        if 'name' in addrFile.columns:
+            data = addrFile.loc[:, ('name', 'geometry_name')]
+        else:
+            data = pd.DataFrame(addrFile.loc[:, 'geometry_name'])
+            data['name'] = ''
+
 
         errors = data[data['geometry_name'].isnull()].copy().fillna('')
         errors['error'] = 'Ошибка. Пустой адрес'
-        errors = errors[['error', 'name', 'geometry_name']]
+        #errors = errors[['error', 'name', 'geometry_name']] if name
         data = data[data['geometry_name'].notnull()].copy().fillna('')
-
-        if 'name' not in data.columns:
-            data['name'] = ''
 
         data_names = data['name']
 
